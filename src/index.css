@@ -1,0 +1,319 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: #f2f3f5;
+  font-family: Arial, "Microsoft YaHei", sans-serif;
+}
+
+.app {
+  display: flex;
+  gap: 24px;
+  padding: 24px;
+}
+
+.toolbar {
+  width: 350px;
+  background: white;
+  padding: 18px;
+  border-radius: 14px;
+  height: calc(100vh - 48px);
+  overflow: auto;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.08);
+}
+
+.toolbar h1 {
+  margin: 0 0 8px;
+  font-size: 22px;
+}
+
+.toolbar p {
+  color: #666;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+button {
+  width: 100%;
+  border: none;
+  background: #1677ff;
+  color: white;
+  padding: 11px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 15px;
+  margin-bottom: 10px;
+}
+
+button:hover {
+  background: #0958d9;
+}
+
+.group-panel {
+  border-top: 1px solid #eee;
+  margin-top: 18px;
+  padding-top: 14px;
+}
+
+.group-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.delete-btn {
+  width: auto;
+  background: #ff4d4f;
+  padding: 6px 10px;
+  margin: 0;
+  font-size: 13px;
+}
+
+.upload-row {
+  display: grid;
+  grid-template-columns: 1fr 62px;
+  gap: 8px;
+  align-items: stretch;
+  margin-bottom: 10px;
+}
+
+.upload-card {
+  display: block;
+  border: 1px dashed #aaa;
+  padding: 10px;
+  border-radius: 10px;
+  cursor: pointer;
+  background: #fafafa;
+}
+
+.upload-card.has-file {
+  border-color: #52c41a;
+  background: #f6ffed;
+}
+
+.upload-card strong {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.upload-card span {
+  display: block;
+  color: #777;
+  font-size: 13px;
+  margin-bottom: 6px;
+}
+
+.upload-card input {
+  width: 100%;
+}
+
+.small-actions {
+  display: grid;
+  gap: 6px;
+}
+
+.mini-btn {
+  margin: 0;
+  padding: 0;
+  font-size: 13px;
+}
+
+.crop-btn {
+  background: #1677ff;
+}
+
+.clear-btn {
+  background: #faad14;
+}
+
+.clear-btn:hover {
+  background: #d48806;
+}
+
+.preview-wrap {
+  flex: 1;
+  overflow: auto;
+}
+
+.a4-page {
+  position: relative;
+  width: 794px;
+  height: 1123px;
+  background: white;
+  margin: 0 auto 28px;
+  padding: 28px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.18);
+}
+
+.page-label {
+  position: absolute;
+  top: 6px;
+  right: 12px;
+  color: #999;
+  font-size: 12px;
+}
+
+.invoice-area {
+  height: 430px;
+  border: 1px solid #ddd;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.invoice-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.bottom-area {
+  height: 610px;
+  margin-top: 22px;
+  display: grid;
+  grid-template-columns: 58% 42%;
+  gap: 12px;
+}
+
+.receipt-area {
+  border: 1px solid #ddd;
+  padding: 8px;
+  overflow: hidden;
+}
+
+.receipt-split {
+  height: 100%;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.receipt-half {
+  overflow: hidden;
+  border: 1px dashed #ccc;
+}
+
+.receipt-half img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.receipt-first {
+  transform: translateY(0%);
+}
+
+.receipt-second {
+  transform: translateY(-50%);
+}
+
+.id-area {
+  display: grid;
+  grid-template-rows: 1fr 1fr;
+  gap: 6px;
+}
+
+.id-box {
+  border: 1px solid #ddd;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.id-box img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.placeholder {
+  width: 100%;
+  height: 100%;
+  min-height: 100px;
+  border: 1px dashed #bbb;
+  color: #999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 裁剪弹窗 */
+.crop-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.crop-panel {
+  width: 760px;
+  background: white;
+  border-radius: 16px;
+  padding: 20px;
+}
+
+.crop-panel h2 {
+  margin: 0 0 14px;
+  font-size: 20px;
+}
+
+.crop-box {
+  position: relative;
+  width: 100%;
+  height: 460px;
+  background: #111;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.range-row {
+  display: grid;
+  grid-template-columns: 60px 1fr;
+  gap: 12px;
+  align-items: center;
+  margin-top: 14px;
+}
+
+.range-row label {
+  font-size: 14px;
+  color: #333;
+}
+
+.range-row input {
+  width: 100%;
+}
+
+.crop-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.gray-btn {
+  background: #888;
+}
+
+.gray-btn:hover {
+  background: #666;
+}
+
+.rotate-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.rotate-actions button {
+  margin-bottom: 0;
+}
