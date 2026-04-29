@@ -12,6 +12,7 @@ body {
   display: flex;
   gap: 24px;
   padding: 24px;
+  align-items: flex-start;
 }
 
 .toolbar {
@@ -19,14 +20,28 @@ body {
   background: white;
   padding: 18px;
   border-radius: 14px;
-  height: calc(100vh - 48px);
-  overflow: auto;
+  position: sticky;
+  top: 24px;
+  max-height: calc(100vh - 48px);
+  overflow: hidden;
   box-shadow: 0 6px 24px rgba(0, 0, 0, 0.08);
+  display: flex;
+  flex-direction: column;
 }
 
 .toolbar h1 {
   margin: 0 0 8px;
   font-size: 22px;
+}
+
+.toolbar-header {
+  flex-shrink: 0;
+}
+
+.toolbar-groups {
+  flex: 1;
+  overflow-y: auto;
+  margin-top: 14px;
 }
 
 .toolbar p {
@@ -135,7 +150,6 @@ button:hover {
 
 .preview-wrap {
   flex: 1;
-  overflow: auto;
 }
 
 .a4-page {

@@ -149,35 +149,48 @@ export default function App() {
     const children = [];
 
     for (let i = 0; i < pages.length; i++) {
-      const canvas = await html2canvas(pages[i], {
-        scale: 2,
-        backgroundColor: "#ffffff",
-        ignoreElements: (element) =>
-          element.hasAttribute("data-html2canvas-ignore"),
-      });
+      try {
+        const canvas = await html2canvas(pages[i], {
+          scale: 2,
+          backgroundColor: "#ffffff",
+          ignoreElements: (element) =>
+            element.hasAttribute("data-html2canvas-ignore"),
+        });
 
-      const blob = await new Promise((resolve) =>
-        canvas.toBlob(resolve, "image/png")
-      );
+        const blob = await new Promise((resolve) =>
+          canvas.toBlob(resolve, "image/png")
+        );
 
-      const buffer = await blob.arrayBuffer();
+        const buffer = await blob.arrayBuffer();
 
-      children.push(
-        new Paragraph({
-          children: [
-            new ImageRun({
-              data: buffer,
-              transformation: {
-                width: 595,
-                height: 842,
-              },
-            }),
-          ],
-        })
-      );
+        children.push(
+          new Paragraph({
+            children: [
+              new ImageRun({
+                data: buffer,
+                transformation: {
+                  width: 595,
+                  height: 842,
+                },
+              }),
+            ],
+          })
+        );
+      } catch (err) {
+        console.warn(`第 ${i + 1} 页渲染失败，已跳过`, err);
+      }
+    }
 
-      if (i !== pages.length - 1) {
-        children.push(new Paragraph({ children: [new PageBreak()] }));
+    if (children.length === 0) {
+      alert("没有可导出的页面");
+      return;
+    }
+
+    const docChildren = [];
+    for (let i = 0; i < children.length; i++) {
+      docChildren.push(children[i]);
+      if (i !== children.length - 1) {
+        docChildren.push(new Paragraph({ children: [new PageBreak()] }));
       }
     }
 
@@ -194,7 +207,7 @@ export default function App() {
               },
             },
           },
-          children,
+          children: docChildren,
         },
       ],
     });
@@ -206,13 +219,16 @@ export default function App() {
   return (
     <div className="app">
       <aside className="toolbar" data-html2canvas-ignore="true">
-        <h1>批量资料排版</h1>
-        <p>支持上传、拖拽、清除、裁剪微调，最后一键生成多页 Word。</p>
+        <div className="toolbar-header">
+          <h1>批量资料排版</h1>
+          <p>支持上传、拖拽、清除、裁剪微调，最后一键生成多页 Word。</p>
 
-        <button onClick={addGroup}>新增一组</button>
-        <button onClick={exportWord}>生成 Word</button>
+          <button onClick={addGroup}>新增一组</button>
+          <button onClick={exportWord}>生成 Word</button>
+        </div>
 
-        {groups.map((group, groupIndex) => (
+        <div className="toolbar-groups">
+          {groups.map((group, groupIndex) => (
           <div className="group-panel" key={groupIndex}>
             <div className="group-title">
               <strong>第 {groupIndex + 1} 组</strong>
@@ -272,6 +288,7 @@ export default function App() {
             ))}
           </div>
         ))}
+        </div>
       </aside>
 
       <main className="preview-wrap" ref={pagesRef}>
@@ -281,16 +298,16 @@ export default function App() {
               第 {index + 1} 页
             </div>
 
-            <section className="invoice-area">
+            <section className="invoice-area" style={group.invoice ? undefined : { border: "none" }}>
               {group.invoice ? (
                 <img src={group.invoice} className="invoice-img" />
               ) : (
-                <div className="placeholder">发票</div>
+                <div className="placeholder" data-html2canvas-ignore="true">发票</div>
               )}
             </section>
 
             <section className="bottom-area">
-              <div className="receipt-area">
+              <div className="receipt-area" style={group.receipt ? undefined : { border: "none" }}>
                 {group.receipt ? (
                   <div className="receipt-split">
                     <div className="receipt-half">
@@ -302,24 +319,24 @@ export default function App() {
                     </div>
                   </div>
                 ) : (
-                  <div className="placeholder">长小票</div>
+                  <div className="placeholder" data-html2canvas-ignore="true">长小票</div>
                 )}
               </div>
 
               <div className="id-area">
-                <div className="id-box">
+                <div className="id-box" style={group.idFront ? undefined : { border: "none" }}>
                   {group.idFront ? (
                     <img src={group.idFront} />
                   ) : (
-                    <div className="placeholder">身份证正面</div>
+                    <div className="placeholder" data-html2canvas-ignore="true">身份证正面</div>
                   )}
                 </div>
 
-                <div className="id-box">
+                <div className="id-box" style={group.idBack ? undefined : { border: "none" }}>
                   {group.idBack ? (
                     <img src={group.idBack} />
                   ) : (
-                    <div className="placeholder">身份证反面</div>
+                    <div className="placeholder" data-html2canvas-ignore="true">身份证反面</div>
                   )}
                 </div>
               </div>
