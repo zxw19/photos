@@ -1,4 +1,4 @@
-import { useRef, useState, useCallback } from "react";
+import { useRef, useState, useCallback, useEffect } from "react";
 import html2canvas from "html2canvas";
 import Cropper from "react-easy-crop";
 import { Document, Packer, Paragraph, ImageRun, PageBreak } from "docx";
@@ -72,6 +72,7 @@ async function getCroppedImage(imageSrc, pixelCrop, rotation = 0) {
 export default function App() {
   const [groups, setGroups] = useState([emptyGroup()]);
   const [cropModal, setCropModal] = useState(null);
+  const [activeGroup, setActiveGroup] = useState(0);
 
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
@@ -101,12 +102,52 @@ export default function App() {
   };
 
   const addGroup = () => {
-    setGroups((prev) => [...prev, emptyGroup()]);
+    setGroups((prev) => {
+      const next = [...prev, emptyGroup()];
+      setTimeout(() => {
+        const page = document.getElementById(`page-${next.length - 1}`);
+        page?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 50);
+      return next;
+    });
   };
 
   const removeGroup = (index) => {
     setGroups((prev) => prev.filter((_, i) => i !== index));
   };
+
+  const scrollToPage = (index) => {
+    const page = document.getElementById(`page-${index}`);
+    if (page) {
+      page.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  };
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((e) => e.isIntersecting)
+          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
+        if (visible.length > 0) {
+          const id = visible[0].target.id;
+          const index = parseInt(id.replace("page-", ""), 10);
+          if (!isNaN(index)) setActiveGroup(index);
+        }
+      },
+      { threshold: 0.3 }
+    );
+
+    const pages = pagesRef.current?.querySelectorAll(".a4-page");
+    pages?.forEach((p) => observer.observe(p));
+
+    return () => observer.disconnect();
+  }, [groups]);
+
+  useEffect(() => {
+    const panel = document.getElementById(`group-${activeGroup}`);
+    panel?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }, [activeGroup]);
 
   const openCrop = (groupIndex, key) => {
     const image = groups[groupIndex][key];
@@ -148,37 +189,52 @@ export default function App() {
     const pages = pagesRef.current.querySelectorAll(".a4-page");
     const children = [];
 
-    for (let i = 0; i < pages.length; i++) {
-      try {
-        const canvas = await html2canvas(pages[i], {
-          scale: 2,
-          backgroundColor: "#ffffff",
-          ignoreElements: (element) =>
-            element.hasAttribute("data-html2canvas-ignore"),
-        });
+    const originals = [];
+    pages.forEach((p) => {
+      originals.push({ padding: p.style.padding, boxShadow: p.style.boxShadow });
+      p.style.padding = "0";
+      p.style.boxShadow = "none";
+    });
 
-        const blob = await new Promise((resolve) =>
-          canvas.toBlob(resolve, "image/png")
-        );
+    try {
+      for (let i = 0; i < pages.length; i++) {
+        try {
+          const canvas = await html2canvas(pages[i], {
+            scale: 2,
+            backgroundColor: "#ffffff",
+            ignoreElements: (element) =>
+              element.hasAttribute("data-html2canvas-ignore"),
+          });
 
-        const buffer = await blob.arrayBuffer();
+          const blob = await new Promise((resolve) =>
+            canvas.toBlob(resolve, "image/png")
+          );
 
-        children.push(
-          new Paragraph({
-            children: [
-              new ImageRun({
-                data: buffer,
-                transformation: {
-                  width: 595,
-                  height: 842,
-                },
-              }),
-            ],
-          })
-        );
-      } catch (err) {
-        console.warn(`第 ${i + 1} 页渲染失败，已跳过`, err);
+          const buffer = await blob.arrayBuffer();
+
+          children.push(
+            new Paragraph({
+              spacing: { before: 0, after: 0 },
+              children: [
+                new ImageRun({
+                  data: buffer,
+                  transformation: {
+                    width: 794,
+                    height: 1122,
+                  },
+                }),
+              ],
+            })
+          );
+        } catch (err) {
+          console.warn(`第 ${i + 1} 页渲染失败，已跳过`, err);
+        }
       }
+    } finally {
+      pages.forEach((p, i) => {
+        p.style.padding = originals[i]?.padding ?? "";
+        p.style.boxShadow = originals[i]?.boxShadow ?? "";
+      });
     }
 
     if (children.length === 0) {
@@ -190,7 +246,7 @@ export default function App() {
     for (let i = 0; i < children.length; i++) {
       docChildren.push(children[i]);
       if (i !== children.length - 1) {
-        docChildren.push(new Paragraph({ children: [new PageBreak()] }));
+        docChildren.push(new Paragraph({ spacing: { before: 0, after: 0 }, children: [new PageBreak()] }));
       }
     }
 
@@ -199,6 +255,10 @@ export default function App() {
         {
           properties: {
             page: {
+              size: {
+                width: 11906,
+                height: 16838,
+              },
               margin: {
                 top: 0,
                 right: 0,
@@ -229,7 +289,7 @@ export default function App() {
 
         <div className="toolbar-groups">
           {groups.map((group, groupIndex) => (
-          <div className="group-panel" key={groupIndex}>
+          <div id={`group-${groupIndex}`} className={`group-panel${groupIndex === activeGroup ? " active" : ""}`} key={groupIndex} onClick={() => scrollToPage(groupIndex)}>
             <div className="group-title">
               <strong>第 {groupIndex + 1} 组</strong>
 
@@ -293,7 +353,7 @@ export default function App() {
 
       <main className="preview-wrap" ref={pagesRef}>
         {groups.map((group, index) => (
-          <div className="a4-page" key={index}>
+          <div className="a4-page" key={index} id={`page-${index}`}>
             <div className="page-label" data-html2canvas-ignore="true">
               第 {index + 1} 页
             </div>
