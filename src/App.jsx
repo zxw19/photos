@@ -38,6 +38,38 @@ function fileToDataUrl(file) {
   });
 }
 
+async function getImageFromDrop(e) {
+  const dt = e.dataTransfer;
+
+  // 1. 文件系统拖入
+  for (const file of dt.files) {
+    if (file.type.startsWith("image/")) return file;
+  }
+
+  // 2. 应用内拖出（Word、浏览器等），通过 items 传递图片
+  if (dt.items) {
+    for (const item of dt.items) {
+      if (item.kind === "file" && item.type.startsWith("image/")) {
+        const file = item.getAsFile();
+        if (file) return file;
+      }
+    }
+  }
+
+  // 3. HTML 中内嵌的 base64 图片（Word 常以此方式传递）
+  const html = dt.getData("text/html");
+  if (html) {
+    const match = html.match(/<img[^>]+src="(data:image\/[^"]+)"/i);
+    if (match?.[1]) {
+      const resp = await fetch(match[1]);
+      const blob = await resp.blob();
+      return new File([blob], "image.png", { type: blob.type });
+    }
+  }
+
+  return null;
+}
+
 async function getCroppedImage(imageSrc, pixelCrop, rotation = 0) {
   const image = await createImage(imageSrc);
   const canvas = document.createElement("canvas");
@@ -367,9 +399,10 @@ export default function App() {
                 <label
                   className={`upload-card ${group[key] ? "has-file" : ""}`}
                   onDragOver={(e) => e.preventDefault()}
-                  onDrop={(e) => {
+                  onDrop={async (e) => {
                     e.preventDefault();
-                    setImage(groupIndex, key, e.dataTransfer.files[0]);
+                    const file = await getImageFromDrop(e);
+                    if (file) setImage(groupIndex, key, file);
                   }}
                 >
                   <strong>{label}</strong>
