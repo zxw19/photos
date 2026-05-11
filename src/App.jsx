@@ -29,6 +29,15 @@ function createImage(url) {
   });
 }
 
+function fileToDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
 async function getCroppedImage(imageSrc, pixelCrop, rotation = 0) {
   const image = await createImage(imageSrc);
   const canvas = document.createElement("canvas");
@@ -69,10 +78,30 @@ async function getCroppedImage(imageSrc, pixelCrop, rotation = 0) {
   return croppedCanvas.toDataURL("image/jpeg", 0.95);
 }
 
+const SAVE_KEY = "photos_guobu_data";
+
 export default function App() {
-  const [groups, setGroups] = useState([emptyGroup()]);
+  const [groups, setGroups] = useState(() => {
+    try {
+      const saved = localStorage.getItem(SAVE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed.map((g) => ({
+            invoice: g.invoice || null,
+            receipt: g.receipt || null,
+            idFront: g.idFront || null,
+            idBack: g.idBack || null,
+          }));
+        }
+      }
+    } catch (e) { /* ignore */ }
+    return [emptyGroup()];
+  });
+
   const [cropModal, setCropModal] = useState(null);
   const [activeGroup, setActiveGroup] = useState(0);
+  const [saveStatus, setSaveStatus] = useState("");
 
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
@@ -80,11 +109,28 @@ export default function App() {
   const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
 
   const pagesRef = useRef(null);
+  const loadIdRef = useRef(0);
 
-  const setImage = (groupIndex, key, file) => {
+  // Auto-save to localStorage (debounced)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      try {
+        localStorage.setItem(SAVE_KEY, JSON.stringify(groups));
+        setSaveStatus("已自动保存");
+      } catch (e) {
+        setSaveStatus("保存失败，存储空间不足");
+      }
+    }, 800);
+    return () => clearTimeout(timer);
+  }, [groups]);
+
+  const setImage = async (groupIndex, key, file) => {
     if (!file || !file.type.startsWith("image/")) return;
 
-    const url = URL.createObjectURL(file);
+    setSaveStatus("正在保存...");
+    const id = ++loadIdRef.current;
+    const url = await fileToDataUrl(file);
+    if (id !== loadIdRef.current) return;
 
     setGroups((prev) => {
       const copy = [...prev];
@@ -212,6 +258,11 @@ export default function App() {
 
           const buffer = await blob.arrayBuffer();
 
+          // Calculate proportional height to prevent stretching
+          const aspectRatio = canvas.width / canvas.height;
+          const imgWidth = 794;
+          const imgHeight = Math.round(imgWidth / aspectRatio);
+
           children.push(
             new Paragraph({
               spacing: { before: 0, after: 0 },
@@ -219,8 +270,8 @@ export default function App() {
                 new ImageRun({
                   data: buffer,
                   transformation: {
-                    width: 794,
-                    height: 1122,
+                    width: imgWidth,
+                    height: imgHeight,
                   },
                 }),
               ],
@@ -285,6 +336,14 @@ export default function App() {
 
           <button onClick={addGroup}>新增一组</button>
           <button onClick={exportWord}>生成 Word</button>
+          {saveStatus && <div className="save-status">{saveStatus}</div>}
+          <button className="clear-data-btn" onClick={() => {
+            if (confirm("确定要清除所有本地保存的数据吗？此操作不可恢复。")) {
+              localStorage.removeItem(SAVE_KEY);
+              setGroups([emptyGroup()]);
+              setSaveStatus("数据已清除");
+            }
+          }}>清除保存数据</button>
         </div>
 
         <div className="toolbar-groups">
@@ -373,7 +432,6 @@ export default function App() {
                     <div className="receipt-half">
                       <img src={group.receipt} className="receipt-first" />
                     </div>
-
                     <div className="receipt-half">
                       <img src={group.receipt} className="receipt-second" />
                     </div>
@@ -391,7 +449,6 @@ export default function App() {
                     <div className="placeholder" data-html2canvas-ignore="true">身份证正面</div>
                   )}
                 </div>
-
                 <div className="id-box" style={group.idBack ? undefined : { border: "none" }}>
                   {group.idBack ? (
                     <img src={group.idBack} />
