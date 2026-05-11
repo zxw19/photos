@@ -41,22 +41,25 @@ function fileToDataUrl(file) {
 async function getImageFromDrop(e) {
   const dt = e.dataTransfer;
 
-  // 1. 文件系统拖入
+  // 1. 文件系统 / WPS 临时文件拖入
   for (const file of dt.files) {
     if (file.type.startsWith("image/")) return file;
+    // WPS 等应用可能不设 MIME type，靠后缀名识别
+    const name = file.name.toLowerCase();
+    if (/\.(png|jpe?g|gif|bmp|webp)$/.test(name)) return file;
   }
 
-  // 2. 应用内拖出（Word、浏览器等），通过 items 传递图片
+  // 2. 应用内拖出，通过 items 传递图片
   if (dt.items) {
     for (const item of dt.items) {
-      if (item.kind === "file" && item.type.startsWith("image/")) {
+      if (item.kind === "file") {
         const file = item.getAsFile();
-        if (file) return file;
+        if (file && (file.type.startsWith("image/") || file.type === "")) return file;
       }
     }
   }
 
-  // 3. HTML 中内嵌的 base64 图片（Word 常以此方式传递）
+  // 3. HTML 中内嵌的 base64 图片（Word/WPS 常以此方式传递）
   const html = dt.getData("text/html");
   if (html) {
     const match = html.match(/<img[^>]+src="(data:image\/[^"]+)"/i);
@@ -398,16 +401,31 @@ export default function App() {
               <div className="upload-row" key={key}>
                 <label
                   className={`upload-card ${group[key] ? "has-file" : ""}`}
+                  tabIndex={0}
                   onDragOver={(e) => e.preventDefault()}
                   onDrop={async (e) => {
                     e.preventDefault();
                     const file = await getImageFromDrop(e);
                     if (file) setImage(groupIndex, key, file);
                   }}
+                  onPaste={async (e) => {
+                    const items = e.clipboardData?.items;
+                    if (!items) return;
+                    for (const item of items) {
+                      if (item.type.startsWith("image/")) {
+                        e.preventDefault();
+                        const file = item.getAsFile();
+                        if (file) {
+                          setImage(groupIndex, key, file);
+                          return;
+                        }
+                      }
+                    }
+                  }}
                 >
                   <strong>{label}</strong>
                   <span>
-                    {group[key] ? "已上传，可重新选择" : "点击选择或拖拽图片"}
+                    {group[key] ? "已上传，可重新选择" : "点击选择、拖拽或 Ctrl+V 粘贴"}
                   </span>
 
                   <input
@@ -450,23 +468,41 @@ export default function App() {
               第 {index + 1} 页
             </div>
 
-            <section className="invoice-area" style={group.invoice ? undefined : { border: "none" }}>
+            <section
+              className="invoice-area"
+              style={group.invoice ? undefined : { border: "none" }}
+              onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+              onDrop={async (e) => {
+                e.preventDefault(); e.stopPropagation();
+                const file = await getImageFromDrop(e);
+                if (file) setImage(index, "invoice", file);
+              }}
+            >
               {group.invoice ? (
-                <img src={group.invoice} className="invoice-img" />
+                <img src={group.invoice} className="invoice-img" draggable={false} />
               ) : (
                 <div className="placeholder" data-html2canvas-ignore="true">发票</div>
               )}
             </section>
 
             <section className="bottom-area">
-              <div className="receipt-area" style={group.receipt ? undefined : { border: "none" }}>
+              <div
+                className="receipt-area"
+                style={group.receipt ? undefined : { border: "none" }}
+                onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                onDrop={async (e) => {
+                  e.preventDefault(); e.stopPropagation();
+                  const file = await getImageFromDrop(e);
+                  if (file) setImage(index, "receipt", file);
+                }}
+              >
                 {group.receipt ? (
                   <div className="receipt-split">
                     <div className="receipt-half">
-                      <img src={group.receipt} className="receipt-first" />
+                      <img src={group.receipt} className="receipt-first" draggable={false} />
                     </div>
                     <div className="receipt-half">
-                      <img src={group.receipt} className="receipt-second" />
+                      <img src={group.receipt} className="receipt-second" draggable={false} />
                     </div>
                   </div>
                 ) : (
@@ -475,16 +511,34 @@ export default function App() {
               </div>
 
               <div className="id-area">
-                <div className="id-box" style={group.idFront ? undefined : { border: "none" }}>
+                <div
+                  className="id-box"
+                  style={group.idFront ? undefined : { border: "none" }}
+                  onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                  onDrop={async (e) => {
+                    e.preventDefault(); e.stopPropagation();
+                    const file = await getImageFromDrop(e);
+                    if (file) setImage(index, "idFront", file);
+                  }}
+                >
                   {group.idFront ? (
-                    <img src={group.idFront} />
+                    <img src={group.idFront} draggable={false} />
                   ) : (
                     <div className="placeholder" data-html2canvas-ignore="true">身份证正面</div>
                   )}
                 </div>
-                <div className="id-box" style={group.idBack ? undefined : { border: "none" }}>
+                <div
+                  className="id-box"
+                  style={group.idBack ? undefined : { border: "none" }}
+                  onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                  onDrop={async (e) => {
+                    e.preventDefault(); e.stopPropagation();
+                    const file = await getImageFromDrop(e);
+                    if (file) setImage(index, "idBack", file);
+                  }}
+                >
                   {group.idBack ? (
-                    <img src={group.idBack} />
+                    <img src={group.idBack} draggable={false} />
                   ) : (
                     <div className="placeholder" data-html2canvas-ignore="true">身份证反面</div>
                   )}
