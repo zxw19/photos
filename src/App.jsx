@@ -412,15 +412,16 @@ export default function App() {
             ignoreElements: (el) => el.hasAttribute("data-html2canvas-ignore"),
           });
 
-          // 用 JPEG 替代 PNG，体积小 5~10 倍
+          // JPEG 质量 0.95，与 PNG 视觉差异极小
           const blob = await new Promise((resolve) =>
-            canvas.toBlob(resolve, "image/jpeg", 0.85)
+            canvas.toBlob(resolve, "image/jpeg", 0.95)
           );
 
           const buffer = await blob.arrayBuffer();
 
+          // A4 页面在 docx 中精确宽度为 793.7px（96DPI），取 793 防止溢出导致空白页
           const aspectRatio = canvas.width / canvas.height;
-          const imgWidth = 794;
+          const imgWidth = 793;
           const imgHeight = Math.round(imgWidth / aspectRatio);
 
           children.push(
