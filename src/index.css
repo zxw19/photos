@@ -220,7 +220,7 @@ button:hover {
   height: 610px;
   margin-top: 22px;
   display: grid;
-  grid-template-columns: 40% 60%;
+  grid-template-columns: 55% 45%;
   gap: 12px;
 }
 
